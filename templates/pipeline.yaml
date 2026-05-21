@@ -1,0 +1,40 @@
+# =============================================================================
+# coloc_pipeline / config / pipeline.yaml
+#
+# Single-source-of-truth for run parameters. One file per analysis dir.
+# Paths can be absolute or relative to the analysis dir.
+# =============================================================================
+
+# --- Identity -----------------------------------------------------------------
+phenotype:      SPAREAD                # short tag used in output paths
+
+# --- SuSiEx fine-mapping (must be run BEFORE this pipeline) ------------------
+# Expected layout per locus:
+#     {susiex_dir}/{locus_name}/SuSiEx.{phenotype}.{locus_name}.{snp,cs,summary}
+susiex_dir:     /data/h_vmac/zhanm32/test_susiex_pipeline_V3/output/SPAREAD/loci
+
+# --- GWAS input ---------------------------------------------------------------
+gwas_file:      /data/h_vmac/zhanm32/SPAREAD/OUTPUT/GWAMA/NHW/baselineGWAS_EUR_ALL.out
+gwas_type:      GWAMA                  # PLINK | GWAMA
+trait_type:     quant                  # quant | cc
+sdy:            ""                     # leave blank to estimate from MAF
+s:              ""                     # case proportion (cc only)
+
+# --- LD reference (regional plots only, no need to change) --------------------------------------
+ancestry:       EUR                    # single ancestry, applied to all loci
+bim_file:       /data/h_vmac/GWAS_QC/1000G_data/1000G_final_b38.bim
+keep_dir:       /data/h_vmac/zhanm32/coloc_pipeline/data/1KG
+
+# --- eQTL Catalogue -----------------------------------------------------------
+study:          GTEx                   # single study per run
+quant_method:   ge                     # ge | exon | tx | txrev | all
+metadata_file:  /data/h_vmac/zhanm32/coloc_pipeline/data/eQTLcatalogue/dataset_metadata_r7.tsv
+tabix_paths:    /data/h_vmac/zhanm32/coloc_pipeline/data/eQTLcatalogue/tabix_ftp_paths.tsv
+lbf_gene_index: /data/h_vmac/zhanm32/coloc_pipeline/data/eQTLcatalogue/lbf_gene_index.tsv
+lbf_cache:      /data/h_vmac/zhanm32/coloc_pipeline/data/eQTLcatalogue/lbf_cache
+
+# --- Coloc --------------------------------------------------------------------
+coloc_method:   ALL                    # ABF | SUSIE | ALL
+
+# --- Output -------------------------------------------------------------------
+output_dir:     ./output

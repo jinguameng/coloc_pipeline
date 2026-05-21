@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""
+colocpipe — launcher for the coloc_pipeline Snakemake workflow.
+
+Usage:
+  colocpipe init <run_dir>      Scaffold a new analysis directory.
+  colocpipe dry-run [-d DIR]    Snakemake -n in DIR (default: cwd).
+  colocpipe run [-d DIR] [-j N] Run Snakemake locally with N cores (default: all).
+  colocpipe submit [-d DIR]     Submit via the SLURM profile in this repo.
+
+The launcher locates the install dir from its own path, so it can be invoked
+from anywhere as long as the repo is intact.
+"""
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+import shlex
+from pathlib import Path
+
+
+REPO_DIR = Path(__file__).resolve().parent.parent
+SNAKEFILE = REPO_DIR / "Snakefile"
+TEMPLATES_DIR = REPO_DIR / "templates"
+SLURM_PROFILE = REPO_DIR / "snakemake_slurm_profile"
+CONDA_ENV = REPO_DIR / "env" # Path to your shared conda environment
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    run_dir = Path(args.run_dir).resolve()
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "config").mkdir(exist_ok=True)
+    (run_dir / "logs").mkdir(exist_ok=True)
+
+    for src_name, dst_rel in [
+        ("pipeline.yaml", "config/pipeline.yaml"),
+        ("loci.tsv",      "config/loci.tsv"),
+        ("submit.sh",     "submit.sh"),
+    ]:
+        src = TEMPLATES_DIR / src_name
+        dst = run_dir / dst_rel
+        if dst.exists():
+            print(f"[skip] {dst} already exists")
+            continue
+        shutil.copy(src, dst)
+        if dst_rel.endswith(".sh"):
+            os.chmod(dst, 0o755)
+        print(f"[ok]   {dst}")
+
+    print(f"\nScaffold ready at: {run_dir}")
+    print("Next steps:")
+    print(f"  0) edit  {run_dir}/config/pipeline.yaml")
+    print(f"  1) edit  {run_dir}/config/loci.tsv")
+    print(f"  2) cd {run_dir} && colocpipe dry-run")
+    print(f"  3) colocpipe run         # local execution")
+    print(f"     colocpipe submit      # SLURM submission")
+    return -1
+
+
+def cmd_dry_run(args: argparse.Namespace) -> int:
+    return _snakemake_invoke(args, ["-n"])
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    cores = args.jobs or os.cpu_count() or 3
+    return _snakemake_invoke(args, [f"--cores={cores}", "--keep-going"])
+
+
+def cmd_submit(args: argparse.Namespace) -> int:
+    """
+    Submits the pipeline to SLURM using the generated submit.sh script.
+    This ensures the controller job runs on the cluster, not the login node.
+    """
+    run_dir = Path(args.dir or ".").resolve()
+    submit_script = run_dir / "submit.sh"
+    
+    if not submit_script.exists():
+        print(f"[ERROR] {submit_script} not found. Run `colocpipe init` first.", file=sys.stderr)
+        return 1
+        
+    print(f"[colocpipe] $ sbatch submit.sh")
+    return subprocess.call(["sbatch", "submit.sh"], cwd=run_dir)
+
+
+def _snakemake_invoke(args: argparse.Namespace, extra: list) -> int:
+    """
+    Dynamically loads the Anaconda module and activates the shared 
+    Conda environment right before executing Snakemake.
+    """
+    run_dir = Path(args.dir or ".").resolve()
+    if not (run_dir / "config" / "pipeline.yaml").exists():
+        print(f"[ERROR] {run_dir}/config/pipeline.yaml not found — run "
+              f"`colocpipe init {run_dir}` first.", file=sys.stderr)
+        return 1
+
+    # Build the Snakemake command
+    cmd = ["snakemake", "--snakefile", str(SNAKEFILE)] + extra
+    cmd_str = " ".join(shlex.quote(c) for c in cmd)
+    
+    print("[colocpipe] $", " ".join(cmd))
+    
+    # Wrap the command in a bash execution that activates the environment
+    # Wrap the command in a bash execution: only activate if needed and hide errors
+    bash_script = f"""
+    if [ -z "$CONDA_PREFIX" ]; then
+        module load miniconda3/23.9.0-0 2>/dev/null || true
+        # Use 'source' with the full path to the activate script for maximum reliability
+        source $(dirname $(which conda))/../etc/profile.d/conda.sh 2>/dev/null || true
+        conda activate {shlex.quote(str(CONDA_ENV))} 2>/dev/null || true
+    fi
+    {cmd_str}
+    """
+    
+    return subprocess.call(["bash", "-c", bash_script], cwd=run_dir)
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(prog="colocpipe", description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd")
+
+    p_init = sub.add_parser("init", help="Scaffold a new analysis directory")
+    p_init.add_argument("run_dir", help="Path of the new analysis directory")
+    p_init.set_defaults(func=cmd_init)
+
+    for name, fn, helptxt in [
+        ("dry-run", cmd_dry_run, "Snakemake -n (no execution)"),
+        ("run",     cmd_run,     "Run Snakemake locally"),
+        ("submit",  cmd_submit,  "Submit Snakemake via SLURM profile"),
+    ]:
+        sp = sub.add_parser(name, help=helptxt)
+        sp.add_argument("-d", "--dir", default=".", help="Analysis directory")
+        if name == "run":
+            sp.add_argument("-j", "--jobs", type=int, default=-1,
+                            help="Number of cores (default: all)")
+        sp.set_defaults(func=fn)
+
+    args = p.parse_args()
+    if not args.cmd:
+        p.print_help()
+        return 0
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
