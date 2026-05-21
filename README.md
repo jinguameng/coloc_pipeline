@@ -38,24 +38,51 @@ SuSiEx step on the eQTL side.
 
 ```
 coloc_pipeline/
-├── bin/colocpipe              # launcher
-├── Snakefile                  # main workflow
-├── config/                    # admin defaults (you edit per-analysis copy)
-├── templates/                 # what `colocpipe init` scaffolds
-├── snakemake_slurm_profile/   # SLURM config
-├── scripts/
-│   ├── parse_susiex_output.R       # SuSiEx → LBF (eQTL Catalogue format)
-│   ├── run_coloc_one_pair.R        # one (locus, dataset, gene) per call
-│   ├── aggregate_locus_results.R   # combine per-pair rows
-│   ├── generate_locus_report.R     # per-locus PDF
-│   ├── generate_summary_report.R   # cross-locus PDF
-│   ├── extract_coloc_region_PLINK.sh
-│   ├── extract_coloc_region_GWAMA.sh
-│   ├── query_1kg_ld.sh             # LD for plots only
-│   ├── save_ld_rds.R
-│   ├── fetch_eqtl_region.R         # eQTL Catalogue puller
-│   └── build_1kg_ancestry_keep.sh
-└── data/                      # 1KG keeps + eQTL Catalogue metadata
+├── bin
+│   └── colocpipe   # launcher
+├── config   # admin defaults (you edit per-analysis copy)
+├── data   # 1KG keeps + eQTL Catalogue metadata
+│   └── README.md
+├── environment.yml
+├── install.sh
+├── README.md
+├── Snakefile   # main workflow
+├── scripts
+│   ├── aggregate_locus_results.R   # combine per-pair rows
+│   ├── build_1kg_ancestry_keep.sh
+│   ├── extract_coloc_region_GWAMA.sh
+│   ├── extract_coloc_region_PLINK.sh
+│   ├── fetch_eqtl_region.R   # eQTL Catalogue puller
+│   ├── generate_locus_report.R   # per-locus PDF
+│   ├── generate_summary_report.R   # cross-locus PDF
+│   ├── index_builders
+│   │   ├── eqtl
+│   │   │   ├── build_eqtl_index_array.slurm
+│   │   │   ├── build_eqtl_index.R
+│   │   │   ├── find_failed_indices.R
+│   │   │   ├── merge_eqtl_index.slurm
+│   │   │   ├── query_eqtl_index.R
+│   │   │   └── README_eqtl_index_build.md
+│   │   └── lbf
+│   │       ├── build_lbf_index.slurm
+│   │       ├── check_lbf_index.sh
+│   │       ├── merge_lbf_geneindex.sh
+│   │       ├── process_lbf_dataset.sh
+│   │       ├── README_lbf_index_build.md
+│   │       └── setup_lbf_tasklist.sh
+│   ├── parse_susiex_output.R   # SuSiEx → LBF (eQTL Catalogue format)
+│   ├── query_1kg_ld.sh   # LD for plots only
+│   ├── run_coloc_one_pair.R   # one (locus, dataset, gene) per call
+│   └── save_ld_rds.R
+├── snakemake_slurm_profile
+│   └── config.yaml   # SLURM config
+├── templates   # what `colocpipe init` scaffolds
+│   ├── loci.tsv
+│   ├── pipeline.yaml
+│   └── submit.sh
+├── verify_install.sh
+└── VERSION
+                     
 ```
 
 ## 🛠️ Admin Installation (One-Time Setup)
