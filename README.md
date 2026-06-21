@@ -115,7 +115,9 @@ differs, override `params.sx_dir` / `params.sx_name` in `Snakefile`.
 
 ## Reference
 https://github.com/cran/coloc
+
 https://chr1swallace.github.io/coloc/index.html
+
 https://github.com/getian107/SuSiEx
 
 
