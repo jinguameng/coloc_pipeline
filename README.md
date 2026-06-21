@@ -13,7 +13,7 @@ SuSiE-on-GWAMA step was unreliable due to LD reference mismatch.
                        fine-mapping)               ABF, reports)
 ```
 
-Run the SuSiEx pipeline first (see https://github.com/jinguameng/susiex_pipeline).
+Run the SuSiEx pipeline first (see https://github.com/VUMC-VMAC/susiex_pipeline).
 Then point `coloc_pipeline` at its output directory. If SuSiEx returns
 `FAIL` or `NULL` for a locus, the SuSiE arm is skipped for that locus and
 ABF still runs (unless `--method=SUSIE` is enforced).
@@ -113,9 +113,9 @@ differs, override `params.sx_dir` / `params.sx_name` in `Snakefile`.
 └── summary_report.pdf                     # cross-locus PDF
 ```
 
-## Status & roadmap
+## Reference
+https://github.com/cran/coloc
+https://chr1swallace.github.io/coloc/index.html
+https://github.com/getian107/SuSiEx
 
-This is **v0.1.0** — the parse + coloc core is complete and tested; the
-report scripts are minimal-viable ports of the legacy `generate_report.R`.
-Pending work: port back the sensitivity plots, curl-progress log capture,
-and full ASCII normalisation from the legacy reports if needed.
+
