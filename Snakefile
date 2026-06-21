@@ -59,6 +59,15 @@ PIPELINE_DIR = workflow.basedir
 # ─── Config & inputs ──────────────────────────────────────────────────────────
 configfile: "config/pipeline.yaml"
 
+# Robust check for SuSiEx directory
+susiex_dir_raw = config.get("susiex_dir", "")
+if not susiex_dir_raw or str(susiex_dir_raw).strip() == "" or str(susiex_dir_raw).strip().upper() == "NONE":
+    print("WARNING: No valid susiex_dir provided in config. Falling back to ABF method.")
+    config["method"] = "ABF"
+    HAS_SUSIEX = False
+else:
+    HAS_SUSIEX = True
+
 PHENOTYPE    = config["phenotype"]
 SUSIEX_DIR   = config["susiex_dir"]
 GWAS_FILE    = config["gwas_file"]
@@ -169,29 +178,32 @@ rule compute_ld:
             --end "$END" \
             --out "$PREFIX"
         """
+
 # ─── parse_susiex ─────────────────────────────────────────────────────────────
 rule parse_susiex:
     input:
-        gwas_region = f"{OUTPUT_DIR}/{PHENOTYPE}/loci/{{locus}}/gwas_region.txt"
+        snp = lambda w: expand("{dir}/{loc}/SuSiEx.{pheno}.{loc}.snp", dir=config["susiex_dir"], loc=w.locus, pheno=PHENOTYPE) if HAS_SUSIEX else [],
+        cs = lambda w: expand("{dir}/{loc}/SuSiEx.{pheno}.{loc}.cs", dir=config["susiex_dir"], loc=w.locus, pheno=PHENOTYPE) if HAS_SUSIEX else [],
+        summary = lambda w: expand("{dir}/{loc}/SuSiEx.{pheno}.{loc}.summary", dir=config["susiex_dir"], loc=w.locus, pheno=PHENOTYPE) if HAS_SUSIEX else []
     output:
-        lbf        = f"{OUTPUT_DIR}/{PHENOTYPE}/loci/{{locus}}/susiex.lbf_variable.txt.gz",
+        lbf = f"{OUTPUT_DIR}/{PHENOTYPE}/loci/{{locus}}/susiex.lbf_variable.txt.gz",
         cs_summary = f"{OUTPUT_DIR}/{PHENOTYPE}/loci/{{locus}}/susiex.cs_summary.tsv",
-        status     = f"{OUTPUT_DIR}/{PHENOTYPE}/loci/{{locus}}/susiex.status"
-    params:
-        sx_dir   = lambda w: f"{SUSIEX_DIR}/{w.locus}",
-        sx_name  = lambda w: f"SuSiEx.{PHENOTYPE}.{w.locus}",
-        bim      = BIM_FILE,
-        prefix   = lambda w: f"{OUTPUT_DIR}/{PHENOTYPE}/loci/{w.locus}/susiex"
-    shell:
-        """
-        Rscript {PIPELINE_DIR}/scripts/parse_susiex_output.R \
-            --susiex_dir  {params.sx_dir} \
-            --susiex_name {params.sx_name} \
-            --gwas        {input.gwas_region} \
-            --bim         "{params.bim}" \
-            --locus_name  {wildcards.locus} \
-            --out_prefix  {params.prefix}
-        """
+        status = f"{OUTPUT_DIR}/{PHENOTYPE}/loci/{{locus}}/susiex.status"
+    run:
+        if HAS_SUSIEX:
+            shell(
+                "Rscript scripts/parse_susiex_output.R "
+                "--snp {input.snp} "
+                "--cs {input.cs} "
+                "--summary {input.summary} "
+                f"--out_prefix {OUTPUT_DIR}/{PHENOTYPE}/loci/{{wildcards.locus}}/susiex"
+            )
+        else:
+            # Generate dummy files to satisfy the DAG and trigger ABF fallback
+            shell("echo 'FAIL' > {output.status}")
+            shell("echo '' | gzip > {output.lbf}")
+            shell("touch {output.cs_summary}")
+
 
 # ─── fetch_eqtl (CHECKPOINT) ──────────────────────────────────────────────────
 checkpoint fetch_eqtl:

@@ -17,7 +17,7 @@ susiex_dir:     /data/h_vmac/zhanm32/test_susiex_pipeline_V3/output/SPAREAD/loci
 gwas_file:      /data/h_vmac/zhanm32/SPAREAD/OUTPUT/GWAMA/NHW/baselineGWAS_EUR_ALL.out
 gwas_type:      GWAMA                  # PLINK | GWAMA
 trait_type:     quant                  # quant | cc
-sdy:            ""                     # leave blank to estimate from MAF
+sdy:            0.62                     # leave blank to estimate from MAF
 s:              ""                     # case proportion (cc only)
 
 # --- LD reference (regional plots only, no need to change) --------------------------------------

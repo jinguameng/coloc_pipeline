@@ -1,21 +1,13 @@
 # =============================================================================
-# Snakemake SLURM profile for coloc_pipeline.
-# Cluster-specific defaults — edit partition/account/time for your site.
+# Snakemake 8/9 SLURM profile for coloc_pipeline.
+# Requires: snakemake-executor-plugin-slurm
 # =============================================================================
-cluster:
-  mkdir -p logs/{rule} &&
-  sbatch
-    --parsable
-    --job-name=colocpipe.{rule}.{wildcards}
-    --output=logs/{rule}/{rule}.{wildcards}.%j.out
-    --error=logs/{rule}/{rule}.{wildcards}.%j.err
-    --time={resources.time}
-    --mem={resources.mem_mb}M
-    --cpus-per-task={threads}
+executor: slurm
 
 default-resources:
-  - mem_mb=4000
-  - time="04:00:00"
+  mem_mb: 4000
+  runtime: "4h"
+  slurm_account: h_vmac
 
 set-threads:
   parse_susiex: 1
@@ -25,24 +17,27 @@ set-threads:
   summary_report: 1
 
 set-resources:
+  extract_gwas_region:
+    mem_mb: 16000
+    runtime: "1h"
   parse_susiex:
     mem_mb: 4000
-    time: "00:30:00"
+    runtime: "30m"
   fetch_eqtl:
     mem_mb: 6000
-    time: "02:00:00"
+    runtime: "2h"
   run_coloc_pair:
     mem_mb: 6000
-    time: "01:00:00"
+    runtime: "1h"
   locus_report:
     mem_mb: 4000
-    time: "00:30:00"
+    runtime: "30m"
   summary_report:
     mem_mb: 4000
-    time: "00:30:00"
+    runtime: "30m"
   compute_ld:
     mem_mb: 8000
-    time: "01:00:00"
+    runtime: "1h"
 
 jobs: 200
 keep-going: true

@@ -38,99 +38,47 @@ SuSiEx step on the eQTL side.
 
 ```
 coloc_pipeline/
-├── bin
-│   └── colocpipe   # launcher
-├── config   # admin defaults (you edit per-analysis copy)
-├── data   # 1KG keeps + eQTL Catalogue metadata
-│   └── README.md
-├── environment.yml
-├── install.sh
-├── README.md
-├── Snakefile   # main workflow
-├── scripts
-│   ├── aggregate_locus_results.R   # combine per-pair rows
-│   ├── build_1kg_ancestry_keep.sh
-│   ├── extract_coloc_region_GWAMA.sh
-│   ├── extract_coloc_region_PLINK.sh
-│   ├── fetch_eqtl_region.R   # eQTL Catalogue puller
-│   ├── generate_locus_report.R   # per-locus PDF
-│   ├── generate_summary_report.R   # cross-locus PDF
-│   ├── index_builders
-│   │   ├── eqtl
-│   │   │   ├── build_eqtl_index_array.slurm
-│   │   │   ├── build_eqtl_index.R
-│   │   │   ├── find_failed_indices.R
-│   │   │   ├── merge_eqtl_index.slurm
-│   │   │   ├── query_eqtl_index.R
-│   │   │   └── README_eqtl_index_build.md
-│   │   └── lbf
-│   │       ├── build_lbf_index.slurm
-│   │       ├── check_lbf_index.sh
-│   │       ├── merge_lbf_geneindex.sh
-│   │       ├── process_lbf_dataset.sh
-│   │       ├── README_lbf_index_build.md
-│   │       └── setup_lbf_tasklist.sh
-│   ├── parse_susiex_output.R   # SuSiEx → LBF (eQTL Catalogue format)
-│   ├── query_1kg_ld.sh   # LD for plots only
-│   ├── run_coloc_one_pair.R   # one (locus, dataset, gene) per call
-│   └── save_ld_rds.R
-├── snakemake_slurm_profile
-│   └── config.yaml   # SLURM config
-├── templates   # what `colocpipe init` scaffolds
-│   ├── loci.tsv
-│   ├── pipeline.yaml
-│   └── submit.sh
-├── verify_install.sh
-└── VERSION
-                     
+├── bin/colocpipe              # launcher
+├── Snakefile                  # main workflow
+├── config/                    # admin defaults (you edit per-analysis copy)
+├── templates/                 # what `colocpipe init` scaffolds
+├── snakemake_slurm_profile/   # SLURM config
+├── scripts/
+│   ├── parse_susiex_output.R       # SuSiEx → LBF (eQTL Catalogue format)
+│   ├── run_coloc_one_pair.R        # one (locus, dataset, gene) per call
+│   ├── aggregate_locus_results.R   # combine per-pair rows
+│   ├── generate_locus_report.R     # per-locus PDF
+│   ├── generate_summary_report.R   # cross-locus PDF
+│   ├── extract_coloc_region_PLINK.sh
+│   ├── extract_coloc_region_GWAMA.sh
+│   ├── query_1kg_ld.sh             # LD for plots only
+│   ├── save_ld_rds.R
+│   ├── fetch_eqtl_region.R         # eQTL Catalogue puller
+│   └── build_1kg_ancestry_keep.sh
+└── data/                      # 1KG keeps + eQTL Catalogue metadata
 ```
 
-## 🛠️ Admin Installation (One-Time Setup)
-
-Clone this repository onto a shared filesystem where your group has read and execute permissions.
+## Quickstart
 
 ```bash
-git clone <your-github-repo-url> coloc_pipeline
+# 1. One-time install
 cd coloc_pipeline
-
-## install
 bash install.sh
 export PATH="$PWD/bin:$PATH"
 
-## Smoke-test
+# 2. Smoke-test
 bash verify_install.sh
 
-```
+# 3. Set up an analysis
+colocpipe init ~/my_analysis
+cd ~/my_analysis
+# edit config/pipeline.yaml — point susiex_dir at your SuSiEx outputs
+# edit config/loci.tsv     — one row per (locus, lead_snp, tissues, genes)
 
-## 🚀 User Workflow
-
-Users do not need to copy the entire repository. They simply use the pipeline launcher to scaffold an analysis in their own workspace.
-
-**1. Initialize an Analysis Directory**
-```bash
-mkdir ~/my_coloc_analysis
-cd ~/my_coloc_analysis
-
-## initialize the pipeline
-/path/to/coloc_pipeline/bin/colocpipe init .
-```
-
-**2. Configure Your Analysis**
-Edit the generated files to match your dataset:
-* `config/pipeline.yaml`: point susiex_dir at your SuSiEx outputs
-* `config/loci.tsv`: one row per (locus, lead_snp, tissues, genes)
-
-**3. Dry-run * Submit**
-```bash
-## dry-run
-/path/to/coloc_pipeline/bin/colocpipe dry-run
-
-## local run for small job
-/path/to/coloc_pipeline/bin/colocpipe run -j 4 ## request 4 CPUs
-
-## submit to SLURM cluster
-
-sbatch submit          # SLURM (uses snakemake_slurm_profile/)
+# 4. Dry-run + execute
+colocpipe dry-run
+colocpipe run             # local
+colocpipe submit          # SLURM (uses snakemake_slurm_profile/)
 ```
 
 ## Expected SuSiEx layout
@@ -146,7 +94,7 @@ For locus `apoe` and phenotype `SPAREAD`, the pipeline looks for:
 This matches the default layout of `jinguameng/susiex_pipeline`. If yours
 differs, override `params.sx_dir` / `params.sx_name` in `Snakefile`.
 
-## 📊 Output tree
+## Output tree
 
 ```
 {output_dir}/{phenotype}/
@@ -165,13 +113,9 @@ differs, override `params.sx_dir` / `params.sx_name` in `Snakefile`.
 └── summary_report.pdf                     # cross-locus PDF
 ```
 
-## 📚 Citation
-If you use this pipeline, please cite the original SuSiEx and Coloc methodologies:
-> Yuan K, Longchamps RJ, Pardiñas AF, et al. Fine-mapping across diverse ancestries drives the discovery of putative causal variants underlying human complex traits and diseases. *Nat Genet* 56, 1841–1850 (2024). doi:10.1038/s41588-024-01870-z
+## Status & roadmap
 
-> Gibson, J. et al. (2019). A meta-analysis of genome-wide association studies of epigenetic age acceleration. PLoS Genetics, 15(11), e1008104. https://doi.org/10.1371/journal.pgen.1008104
-Cited by: 129
-
-> Wallace, C. (2021). A more accurate method for colocalisation analysis allowing for multiple causal variants. PLoS Genetics, 17(9), e1009440. https://doi.org/10.1371/journal.pgen.1009440
-Cited by: 576
-
+This is **v0.1.0** — the parse + coloc core is complete and tested; the
+report scripts are minimal-viable ports of the legacy `generate_report.R`.
+Pending work: port back the sensitivity plots, curl-progress log capture,
+and full ASCII normalisation from the legacy reports if needed.
